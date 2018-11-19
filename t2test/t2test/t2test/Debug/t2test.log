@@ -1,0 +1,7 @@
+﻿t2test.obj : error LNK2019: unresolved external symbol _fibX64 referenced in function _wmain
+t2test.obj : error LNK2019: unresolved external symbol _min referenced in function _wmain
+t2test.obj : error LNK2019: unresolved external symbol _p referenced in function _wmain
+t2test.obj : error LNK2019: unresolved external symbol _gcd referenced in function _wmain
+t2test.obj : error LNK2019: unresolved external symbol _q referenced in function _wmain
+t2test.obj : error LNK2001: unresolved external symbol _g
+C:\Users\tonpr\Desktop\IA32\t2test\t2test\Debug\t2test.exe : fatal error LNK1120: 6 unresolved externals

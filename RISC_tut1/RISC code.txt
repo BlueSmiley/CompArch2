@@ -1,0 +1,224 @@
+//Unoptimised RISC code(theoretical)
+//R10 to R15 used to pass params
+//R26-R31 contain current parameters
+//R25 return address
+//R1 return value
+//R0 0 register
+//R0-R9 global registers
+//R16-R25 therefore used to store local variables
+//Unoptimised NOPs instead of actual instruction because
+//Easier to read and write and question doesnt ask for optimised
+
+//global variable declaration
+    Add R0, #4, R9  ;Load 4 into global variable g
+	
+Min:	Add R0, R26, R1 ;Min = a
+		Sub R1, R27, R0 ;Cmp min b
+		jle min1	; if b< min
+		XOR R0,R0,R0	;NOP
+		Add R0, R27, R1 ;min = b
+Min1:	Sub R1, R28, R0 ;cmp min c
+		jle minend	;if c<min
+		XOR R0, R0, R0 ;NOP
+		Add R0, R28, R1
+Minend: Ret R25, 0
+		XOR R0, R0, R0 ;NOP
+		
+P:		Add R26, R0, R10 ; Pass in i
+		Add R27, R0, R11 ; Pass in j
+		Add R28, R0, R12 ; Pass in k
+		Callr R25, Min ; Min of i,j,k in R1
+		XOR R0, R0, R0 ;NOP
+		Add R29, R0, R10 ; Pass in l
+		Add R9, R0, R11 ;Pass in g
+		Add R1, R0, R12 ; Pass in Min(i,j,k)
+		Callr R25, Min ; Min(l,g,Min(i,j,k))
+		XOR R0, R0, R0 ;NOP
+		Ret 25, 0
+		XOR R0, R0, R0 ;NOP
+		
+gcd:	Add R26, R0, R1	;Mov dividend to ret
+		Sub R27, R0, R0 ; CMP divisor
+		Jle	gcdend		; if divisor == 0 then end
+		XOR	R0, R0, R0	;NOP
+		Add R26, R0, R10 ;Pass in dividend
+		Add R27, R0, R11 ;Pass in divisor
+		CallR R25, mod ;Mod result in R1
+		XOR R0, R0, R0 ;NOP
+		Add R27, R0, R10 ;Pass in divisor
+		Add R1, R0, R11 ;Pass in dividend%divisor
+		Callr R25, gcd
+		XOR R0, R0, R0
+gcdend:	Ret R25, 0
+
+//Modify the following c function to record the number of procedure calls. 
+//Maximum register window depth,number of overflows and undeflows for
+//6,8 and 16 register sets
+
+#define _POSIX_C_SOURCE 200809L
+
+#include <inttypes.h>
+#include <math.h>
+#include <stdio.h>
+#include <time.h>
+
+int proc_calls = 0; 
+int curr_window_depth = 0;
+int max_window_depth = 0;
+int overflows_6 = 0;
+int underflows_6 = 0;
+int overflows_8 = 0;
+int underflows_8 = 0;
+int overflows_16 = 0;
+int underflows_16 = 0;
+
+int used_register_6 = 1;
+int used_register_8 = 1;
+int used_register_16 = 1;
+	
+int ackermann(int x, int y){
+	proc_calls++;
+	curr_window_depth++;
+	used_register_6++;
+	used_register_8++;
+	used_register_16++;
+	
+	if(curr_window_depth > max_window_depth)
+		max_window_depth = curr_window_depth;
+		
+	if(used_register_6>5){
+		used_register_6--;
+		overflows_6++;
+	}
+	if(used_register_8>7){
+		used_register_8--;
+		overflows_8++;
+	}
+	if(used_register_16>15){
+		used_register_16--;
+		overflows_16++;
+	}
+	
+	int res;
+	int tempres;
+	if (x == 0) {
+		res = y+1;
+		
+		used_register_6--;
+		used_register_8--;
+		used_register_16--;
+		if(used_register_6<=0){
+			used_register_6++;
+			underflows_6++;
+		}
+		if(used_register_8<=0){
+			used_register_8++;
+			underflows_8++;
+		}
+		if(used_register_16<=0){
+			used_register_16++;
+			underflows_16++;
+		}
+		return res;
+	} else if (y == 0){ 
+		res = ackermann(x-1, 1);
+		
+		curr_window_depth--;
+		
+		used_register_6--;
+		used_register_8--;
+		used_register_16--;
+		if(used_register_6<=0){
+			used_register_6++;
+			underflows_6++;
+		}
+		if(used_register_8<=0){
+			used_register_8++;
+			underflows_8++;
+		}
+		if(used_register_16<=0){
+			used_register_16++;
+			underflows_16++;
+		}
+		return res;
+	} else
+	 { 
+		tempres = ackermann(x, y-1);
+		
+		curr_window_depth--;
+		res = ackermann(x-1, tempres);
+
+		curr_window_depth--;
+		
+		used_register_6--;
+		used_register_8--;
+		used_register_16--;
+		if(used_register_6<=0){
+			used_register_6++;
+			underflows_6++;
+		}
+		if(used_register_8<=0){
+			used_register_8++;
+			underflows_8++;
+		}
+		if(used_register_16<=0){
+			used_register_16++;
+			underflows_16++;
+		}
+		return res;
+	} 
+} 
+
+int main(){
+struct timespec spec;
+
+clock_gettime(CLOCK_MONOTONIC, &spec);
+double starttime = spec.tv_sec*1000 + round(spec.tv_nsec/1.0e6);
+ackermann(3,6);
+clock_gettime(CLOCK_MONOTONIC, &spec);
+double endtime = spec.tv_sec*1000 + round(spec.tv_nsec/1.0e6);
+double elapsedtime = endtime - starttime;
+printf("calls:%d max depth:%d overflows:%d %d %d underflows:%d %d %d\n",
+	proc_calls,max_window_depth,overflows_6,overflows_8,overflows_16,
+	underflows_6,underflows_8,underflows_16);
+printf("%lf",elapsedtime);
+return 0;
+}
+
+//calls:172233 
+//max depth:511 
+//overflows6:84885 
+//overflows8:83911
+//overflows16:80142 
+//underflows6:84885
+//underflows8:83911 
+//underflow16:80142
+
+Used the gettime function to calculate time elapsedin milliseconds.
+(not just cpu time unfortunately) POSIX Compliant.
+
+Repeat 3 times and get average to reduce outliers.
+Unfortunately not accurate enough to test speed of assembly operations
+in enough detail.
+
+Would want more standardised and accurate measurement for benchmarking
+assembly instruction sets. 
+
+The more lower level the language is meant
+to impact the more important factors such as speed matter
+since the impact propagates up multiplicatively for everything.
+
+But good enough for this assignment I think.
+
+Factors such as caching and other optimisations by compilers would also
+affect this so its not a sufficient enough method for actual assembly benchmarking
+imo.
+
+Also since measuring actual time any threading etc would matter
+
+2 milliseconds to run program apparently...
+
+
+
+
+
